@@ -8,29 +8,24 @@ require 'dotenv'
 require 'ruby-plsql'
 require 'thor'
 
-require 'account'
-
 class Export < Thor
   desc 'mediziner','fetch the students of medicine'
   def mediziner
-    Dotenv.load
-
-    @accounts = []
+    @records = []
     fetch type: 'mediziner'
     write_csv
   end
 
   desc 'zahnmediziner','fetch the dentistry students'
   def zahnmediziner
-    Dotenv.load
-
-    @accounts = []
+    @records = []
     fetch type: 'zahnmediziner'
     write_csv
   end
 
 private
   def connect
+    Dotenv.load
     plsql.connection = OCI8.new \
       ENV['IDM_USERNAME'],
       ENV['IDM_PASSWORD'],
@@ -38,38 +33,26 @@ private
   end
 
   def write_csv
-    @accounts.map do |account|
-      puts "'#{account.firstname}';"+ 
-           "'#{account.lastname}';"+
-           "'#{account.date_of_birth}';"+
-           "'#{account.mail}';"+
-           "'#{account.uid}';"+
-           "#{account.matrikel}"
+    @records.map do |record|
+      puts "'#{record[:gname]}';"+ 
+           "'#{record[:sname]}';"+
+           "'#{record[:geb_dat]}';"+
+           "'#{record[:mail]}';"+
+           "'#{record[:nkz]}';"+
+           "#{record[:matrikel]}"
     end
   end
 
   def fetch type: nil
     connect
-    records = nil
 
     if 'zahnmediziner' == type
-      records = plsql.zahnmed_erstsemester_view.all
+      @records = plsql.zahnmed_erstsemester_view.all
     elsif 'mediziner' == type 
-      records = plsql.medizin_erstsemester_view.all
+      @records = plsql.medizin_erstsemester_view.all
     end
 
-    records.map do |record|
-      account = Account.new \
-        firstname: record[:gname],
-        lastname: record[:sname],
-        date_of_birth: record[:geb_dat],
-        matrikel: record[:matrikel],
-        uid: record[:nkz],
-        mail: record[:mail]
-
-      @accounts << account
-    end
-    @accounts.freeze
+    @records.freeze
   end
 end
 
